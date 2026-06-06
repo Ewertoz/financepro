@@ -2622,7 +2622,7 @@ tr:hover td { background: rgba(0,0,0,.015); }
       <div class="hero-balance">
         <div class="hero-top">
           <div>
-            <div class="hero-label">Saldo do Mês</div>
+            <div class="hero-label">Saldo da Conta</div>
             <div class="hero-amount" id="saldo-mes">R$ 0,00</div>
           </div>
           <div class="hero-trend neutral" id="saldo-trend">— Neutro</div>
@@ -3571,7 +3571,9 @@ function renderAll() {
   const mes = getMesAno();
   const mesLancs    = lancamentos.filter(l => l.data.startsWith(mes));
   const mesConfirmados = mesLancs.filter(l => l.pago !== false);
-  renderCards(mesConfirmados, mesLancs);
+  const anteriores = lancamentos.filter(l => l.pago !== false && l.data.slice(0,7) < mes);
+  const saldoAnterior = anteriores.reduce((a,l) => l.tipo === 'receita' ? a + +l.valor : a - +l.valor, 0);
+  renderCards(mesConfirmados, mesLancs, saldoAnterior);
   renderInsight(mesConfirmados);
   renderLancamentos();
   renderChartBarras(mesConfirmados);
@@ -3587,21 +3589,22 @@ function renderAll() {
 }
 
 // ══════════════════════ CARDS ══════════════════════
-function renderCards(mesLancs, allMesLancs) {
+function renderCards(mesLancs, allMesLancs, saldoAnterior = 0) {
   const rec  = mesLancs.filter(l => l.tipo === 'receita').reduce((a,l) => a + +l.valor, 0);
   const desp = mesLancs.filter(l => l.tipo === 'despesa').reduce((a,l) => a + +l.valor, 0);
   const saldo = rec - desp;
+  const saldoConta = saldoAnterior + saldo;
   const total = rec + desp || 1;
 
-  document.getElementById('saldo-mes').textContent = fmt(saldo);
+  document.getElementById('saldo-mes').textContent = fmt(saldoConta);
   document.getElementById('total-receitas').textContent = fmt(rec);
   document.getElementById('total-despesas').textContent = fmt(desp);
   document.getElementById('bar-receita').style.width = Math.round(rec/total*100)+'%';
   document.getElementById('bar-despesa').style.width = Math.round(desp/total*100)+'%';
 
   const trend = document.getElementById('saldo-trend');
-  if (saldo > 0) { trend.textContent = '▲ Positivo'; trend.className = 'hero-trend up'; }
-  else if (saldo < 0) { trend.textContent = '▼ Negativo'; trend.className = 'hero-trend down'; }
+  if (saldoConta > 0) { trend.textContent = '▲ Positivo'; trend.className = 'hero-trend up'; }
+  else if (saldoConta < 0) { trend.textContent = '▼ Negativo'; trend.className = 'hero-trend down'; }
   else { trend.textContent = '— Neutro'; trend.className = 'hero-trend neutral'; }
 
   // Forecast (pending transactions)
